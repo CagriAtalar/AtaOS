@@ -328,7 +328,8 @@ unstripped `build/<cfg>/ataos.elf`, QEMU `-s -S` GDB procedure
 | Formatted logging (`kprintf`) | IMPLEMENTED, TESTED | Host tests + boot log |
 | Panic / assert | IMPLEMENTED, TESTED | Panic-injection QEMU test |
 | QEMU test-exit | IMPLEMENTED, TESTED | Observed exit code in runner |
-| GDT/TSS, IDT, exceptions | PLANNED (M2) | — |
+| GDT/TSS (Task 1) | IMPLEMENTED, TESTED | QEMU BIOS/UEFI + VirtualBox + GDB TR/GDTR/IST check |
+| IDT, exception handling (Tasks 2-3) | PLANNED (M2) | — |
 | PMM | PLANNED (M3) | — |
 | Kernel heap | PLANNED (M3) | — |
 | VMM / page faults | PLANNED (M4) | — |
@@ -337,7 +338,7 @@ unstripped `build/<cfg>/ataos.elf`, QEMU `-s -S` GDB procedure
 | ELF loader | PLANNED (M7) | — |
 | VFS / initrd | PLANNED (M8) | — |
 | User runtime / shell | PLANNED (M9) | — |
-| VirtualBox boot | NOT RUN | manual procedure documented |
+| VirtualBox boot | IMPLEMENTED, TESTED | Verified via scripts/vbox-run.sh (M1 report) |
 
 `TESTED` here means the specific named tests passed; no subsystem is
 `VERIFIED` against full acceptance criteria except where the report says so.

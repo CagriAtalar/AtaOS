@@ -20,6 +20,14 @@
  */
 void arch_early_console_init(void);
 
+/*
+ * Initialise the custom x86_64 Global Descriptor Table (GDT) and Task State
+ * Segment (TSS). Loads 64-bit kernel and user segment descriptors, points RSP0
+ * to the bootstrap stack, populates IST stacks for #DF, NMI, and #MC, and
+ * loads the Task Register (TR). Must be called with interrupts disabled.
+ */
+void arch_gdt_init(void);
+
 /* Write one character to the early console. Callable from any context. */
 void arch_early_console_putc(char c);
 

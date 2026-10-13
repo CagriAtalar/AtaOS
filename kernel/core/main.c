@@ -68,6 +68,9 @@ void kmain(void)
 
     log_info("AtaOS %s (%s, git %s) x86_64", ATAOS_VERSION, ATAOS_BUILD_FLAVOR, ATAOS_GIT_REV);
 
+    /* Initialize custom GDT and TSS (M2 Task 1) */
+    arch_gdt_init();
+
     bootinfo_capture();
     report_boot_info(bootinfo_get());
 

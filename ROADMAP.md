@@ -63,7 +63,7 @@ This document outlines the 12 incremental milestones across approximately 60 day
 - **Acceptance Criteria:**
   - Deliberate fault injection (#DE, #UD, #GP, #PF) triggers structured panic with register dump and halts cleanly.
   - Double fault (#DF) handled safely via IST stack.
-- **Current Status:** PLANNED.
+- **Current Status:** PLANNED (Task 1: GDT & TSS implemented and verified; Task 2 IDT and Task 3 exception dispatcher pending).
 
 ---
 
