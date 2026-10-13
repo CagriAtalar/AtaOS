@@ -1,0 +1,11 @@
+# type(scope): short description
+#
+# types : feat bug test doc refactor build ci chore
+# scopes: boot arch cpu mm proc sched syscall fs vfs drivers serial lib log
+#         panic user abi toolchain build test docs ci repo
+#
+# Rules: scope required; lowercase imperative description; no trailing period;
+#        header <= 72 characters. One commit = one coherent logical change.
+#
+# Body (optional, after a blank line): why the change is needed and how it was
+# verified (commands run, or "not run: reason").

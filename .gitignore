@@ -1,0 +1,14 @@
+# Generated artifacts live under build/ only.
+/build/
+
+# Editor / OS noise
+*.swp
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local scratch
+/scratch/
+*.log
