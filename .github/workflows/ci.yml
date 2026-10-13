@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            lld \
+            make \
+            xorriso \
+            mtools \
+            qemu-system-x86 \
+            ovmf \
+            python3 \
+            curl
+
+      - name: Check environment
+        run: make env-check
+
+      - name: Run host unit tests (ASan + UBSan)
+        run: make test-host
+
+      - name: Run repository script and commit validator tests
+        run: make test-scripts
+
+      - name: Run linter and boundary checks
+        run: make lint
+
+      - name: Check reproducible build
+        run: make repro-check
+
+      - name: Run headless QEMU smoke tests
+        run: make test-qemu
