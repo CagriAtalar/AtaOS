@@ -101,7 +101,7 @@ run-debug: $(ISO) need-qemu ## BIOS boot paused, GDB stub on tcp::1234 (see docs
 ##@ Tests
 
 HOST_BIN := $(BUILD_ROOT)/host/ataos-host-tests
-HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c
+HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c kernel/mm/heap.c
 HOST_SAN := $(shell echo 'int main(void){return 0;}' | $(HOST_CC) -x c - -fsanitize=address,undefined -o /dev/null >/dev/null 2>&1 && echo -fsanitize=address,undefined -fno-sanitize-recover=all)
 HOST_HDRS := $(wildcard include/kernel/*.h tests/host/*.h)
 
