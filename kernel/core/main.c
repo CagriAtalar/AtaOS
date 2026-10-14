@@ -11,6 +11,7 @@
 #include "kernel/kernel.h"
 #include "kernel/log.h"
 #include "kernel/panic.h"
+#include "kernel/pmm.h"
 
 static void report_memory_map(const struct bootinfo *bi)
 {
@@ -76,6 +77,9 @@ void kmain(void)
 
     bootinfo_capture();
     report_boot_info(bootinfo_get());
+
+    /* Initialize physical memory manager (M3) */
+    pmm_init(bootinfo_get());
 
 #ifdef ATAOS_TEST_PANIC
     /* Deliberate failure used only by the panic-detection test (TEST_PANIC=1). */
