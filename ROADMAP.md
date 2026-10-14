@@ -80,7 +80,7 @@ This document outlines the 12 incremental milestones across approximately 60 day
   - Reserved and firmware regions are never allocated.
   - Frame allocation stress test executes without leaking frames.
   - Heap handles split/coalesce and rejects integer overflows in `kcalloc`.
-- **Current Status:** PLANNED.
+- **Current Status:** **VERIFIED** (All acceptance criteria satisfied: PMM bitmap frame allocator and kernel heap `kmalloc`/`kcalloc`/`kfree` over HHDM implemented and verified; 22 host unit tests with ASan/UBSan passed; QEMU BIOS/UEFI smoke tests and in-kernel alloc/free self-tests verified).
 
 ---
 
