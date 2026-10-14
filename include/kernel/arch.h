@@ -62,6 +62,12 @@ ATAOS_NORETURN void arch_halt_forever(void);
  * present the call returns and the caller must halt.
  */
 void arch_test_exit(int code);
+
+/*
+ * Deliberately trigger an invalid opcode exception (#UD) via `ud2`.
+ * Used exclusively for testing the CPU exception handling path.
+ */
+void arch_test_fault_ud(void);
 #endif
 
 #endif /* ATAOS_KERNEL_ARCH_H */

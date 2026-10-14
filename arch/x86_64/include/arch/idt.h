@@ -48,8 +48,15 @@ STATIC_ASSERT(sizeof(struct idtr) == 10, "struct idtr must be exactly 10 bytes")
 /* Assembly helper: loads IDTR via `lidt` */
 void arch_idt_load(const struct idtr *idtr);
 
+/* Array of 32 exception entry stubs defined in exception_stubs.S */
+extern const uintptr_t x86_exception_stubs[32];
+
 /* Shared emergency exception stub: halts permanently with interrupts disabled */
 ATAOS_NORETURN void arch_emergency_exception_stub(void);
+
+/* Exception dispatcher invoked by isr_common_stub */
+struct trap_frame;
+void x86_exception_dispatch(struct trap_frame *frame);
 
 /* Diagnostic inspections for tests / verification */
 const struct idtr *arch_idt_get_idtr(void);

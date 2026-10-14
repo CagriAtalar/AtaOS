@@ -32,7 +32,11 @@ endif
 # Configuration flavour (separate build directories, see Makefile).
 TEST       ?= 0
 TEST_PANIC ?= 0
+TEST_FAULT ?= 0
 ifeq ($(TEST_PANIC),1)
+  TEST := 1
+endif
+ifeq ($(TEST_FAULT),1)
   TEST := 1
 endif
 
@@ -44,6 +48,10 @@ endif
 ifeq ($(TEST_PANIC),1)
   CONFIG_NAME := $(MODE)-testpanic
   FLAVOR_DEFS += -DATAOS_TEST_PANIC
+endif
+ifeq ($(TEST_FAULT),1)
+  CONFIG_NAME := $(MODE)-testfault
+  FLAVOR_DEFS += -DATAOS_TEST_FAULT
 endif
 
 # Warnings are bugs: never disabled to make a build pass.

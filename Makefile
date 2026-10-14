@@ -127,6 +127,7 @@ test-scripts: ## Tests for repository scripts (commit validator, Limine checksum
 test-qemu: ## Headless QEMU smoke tests (BIOS and UEFI); builds test ISOs
 	@$(MAKE) --no-print-directory TEST=1 iso
 	@$(MAKE) --no-print-directory TEST_PANIC=1 iso
+	@$(MAKE) --no-print-directory TEST_FAULT=1 iso
 	@$(MAKE) --no-print-directory iso
 	@$(ENVCHECK) require qemu
 	python3 tests/qemu/run.py --root $(CURDIR) --mode $(MODE) --log-dir $(LOG_DIR)

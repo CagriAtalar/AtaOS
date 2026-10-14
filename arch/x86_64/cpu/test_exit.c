@@ -23,3 +23,8 @@ void arch_test_exit(int code)
 {
     outb(QEMU_DEBUG_EXIT_PORT, (uint8_t)code);
 }
+
+void arch_test_fault_ud(void)
+{
+    __asm__ volatile("ud2");
+}

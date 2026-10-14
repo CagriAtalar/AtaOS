@@ -82,6 +82,11 @@ void kmain(void)
     PANIC("deliberate test panic (ATAOS_TEST_PANIC)");
 #endif
 
+#ifdef ATAOS_TEST_FAULT
+    /* Deliberate exception to verify exception dispatcher and register dump (M2). */
+    arch_test_fault_ud();
+#endif
+
     log_info("boot complete");
 
 #ifdef ATAOS_TEST_BUILD
