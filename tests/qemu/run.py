@@ -74,7 +74,6 @@ def main():
 
     iso_test = os.path.join(args.root, "build", f"{args.mode}-test", "ataos.iso")
     iso_panic = os.path.join(args.root, "build", f"{args.mode}-testpanic", "ataos.iso")
-    iso_fault = os.path.join(args.root, "build", f"{args.mode}-testfault", "ataos.iso")
 
     if not os.path.isfile(iso_test):
         print(f"error: test ISO not found at {iso_test}. Run 'make TEST=1 iso' first.")
@@ -142,23 +141,32 @@ def main():
         print(f"note: panic ISO not found at {iso_panic}, skipping panic test")
         tests_skipped += 1
 
-    # Test 4: CPU Exception Smoke Test (if fault ISO was built)
-    if os.path.isfile(iso_fault):
-        cmd_fault = common_qemu + ["-cdrom", iso_fault]
-        log_fault = os.path.join(args.log_dir, "qemu_fault_test.log")
-        markers_fault = [
-            "[ataos] AtaOS 0.1.0",
-            "*** CPU EXCEPTION ***",
-            "Vector: 6 (Invalid Opcode (#UD))",
-            "System halted.",
-        ]
-        if run_qemu_test("CPU Exception Smoke Test (#UD)", cmd_fault, markers_fault, 35, 10, log_fault):
-            tests_passed += 1
+    # Test 4: CPU Exception Smoke Tests (deliberate fault injection)
+    fault_tests = [
+        ("de", "Divide Error (#DE)", ["Vector: 0 (Divide Error (#DE))"]),
+        ("ud", "Invalid Opcode (#UD)", ["Vector: 6 (Invalid Opcode (#UD))"]),
+        ("gp", "General Protection Fault (#GP)", ["Vector: 13 (General Protection Fault (#GP))"]),
+        ("pf", "Page Fault (#PF)", ["Vector: 14 (Page Fault (#PF))", "CR2: 0x0000000000000100"]),
+        ("df", "Double Fault (#DF via IST)", ["Vector: 8 (Double Fault (#DF))"]),
+    ]
+
+    for flavor, desc, extra_markers in fault_tests:
+        iso_fault_flavor = os.path.join(args.root, "build", f"{args.mode}-testfault-{flavor}", "ataos.iso")
+        if os.path.isfile(iso_fault_flavor):
+            cmd_fault = common_qemu + ["-cdrom", iso_fault_flavor]
+            log_fault = os.path.join(args.log_dir, f"qemu_fault_{flavor}.log")
+            markers_fault = [
+                "[ataos] AtaOS 0.1.0",
+                "*** CPU EXCEPTION ***",
+                "System halted.",
+            ] + extra_markers
+            if run_qemu_test(f"CPU Exception Test: {desc}", cmd_fault, markers_fault, 35, 10, log_fault):
+                tests_passed += 1
+            else:
+                tests_failed += 1
         else:
-            tests_failed += 1
-    else:
-        print(f"note: fault ISO not found at {iso_fault}, skipping exception test")
-        tests_skipped += 1
+            print(f"note: fault ISO not found at {iso_fault_flavor}, skipping {desc} test")
+            tests_skipped += 1
 
     print("\n=== QEMU Test Results ===")
     print(f"Passed:  {tests_passed}")

@@ -37,6 +37,9 @@ ifeq ($(TEST_PANIC),1)
   TEST := 1
 endif
 ifeq ($(TEST_FAULT),1)
+  TEST_FAULT := ud
+endif
+ifneq ($(TEST_FAULT),0)
   TEST := 1
 endif
 
@@ -49,9 +52,21 @@ ifeq ($(TEST_PANIC),1)
   CONFIG_NAME := $(MODE)-testpanic
   FLAVOR_DEFS += -DATAOS_TEST_PANIC
 endif
-ifeq ($(TEST_FAULT),1)
-  CONFIG_NAME := $(MODE)-testfault
-  FLAVOR_DEFS += -DATAOS_TEST_FAULT
+ifneq ($(TEST_FAULT),0)
+  CONFIG_NAME := $(MODE)-testfault-$(TEST_FAULT)
+  ifeq ($(TEST_FAULT),de)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_DE
+  else ifeq ($(TEST_FAULT),ud)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_UD
+  else ifeq ($(TEST_FAULT),gp)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_GP
+  else ifeq ($(TEST_FAULT),pf)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_PF
+  else ifeq ($(TEST_FAULT),df)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_DF
+  else
+    $(error Unknown TEST_FAULT='$(TEST_FAULT)'; supported: de, ud, gp, pf, df)
+  endif
 endif
 
 # Warnings are bugs: never disabled to make a build pass.

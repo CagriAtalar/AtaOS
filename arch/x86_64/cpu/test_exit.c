@@ -24,7 +24,42 @@ void arch_test_exit(int code)
     outb(QEMU_DEBUG_EXIT_PORT, (uint8_t)code);
 }
 
+void arch_test_fault_de(void)
+{
+    volatile int zero = 0;
+    volatile int num = 100;
+    volatile int res = num / zero;
+    (void)res;
+}
+
 void arch_test_fault_ud(void)
 {
     __asm__ volatile("ud2");
+}
+
+void arch_test_fault_gp(void)
+{
+    /* Access to a non-canonical address triggers #GP */
+    volatile uint64_t *ptr = (volatile uint64_t *)0xaaaaaaaaaaaaaaaaULL;
+    *ptr = 0x42;
+}
+
+void arch_test_fault_pf(void)
+{
+    /* Access to a canonical unmapped page triggers #PF (CR2 populated) */
+    volatile uint64_t *ptr = (volatile uint64_t *)0x0000000000000100ULL;
+    *ptr = 0x42;
+}
+
+void arch_test_fault_df(void)
+{
+    /*
+     * Load RSP with 0 (unmapped). When ud2 executes, the CPU attempts to push
+     * the exception frame to address 0, causing a page fault. Because the stack
+     * cannot be written, this escalates to a Double Fault (#DF). Since vector 8
+     * has IST1 configured in the IDT, the CPU switches to s_df_stack and executes
+     * the #DF handler rather than triple faulting.
+     */
+    __asm__ volatile("movq $0, %%rsp\n\t"
+                     "ud2\n\t" : : : "memory");
 }

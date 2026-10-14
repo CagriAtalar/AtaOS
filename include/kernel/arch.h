@@ -64,10 +64,18 @@ ATAOS_NORETURN void arch_halt_forever(void);
 void arch_test_exit(int code);
 
 /*
- * Deliberately trigger an invalid opcode exception (#UD) via `ud2`.
- * Used exclusively for testing the CPU exception handling path.
+ * Deliberately trigger exceptions for testing CPU exception handling (M2):
+ *   - #DE: Divide Error (division by zero)
+ *   - #UD: Invalid Opcode (via `ud2`)
+ *   - #GP: General Protection Fault (non-canonical memory access)
+ *   - #PF: Page Fault (unmapped page access)
+ *   - #DF: Double Fault (stack exhaustion/corruption switching to IST1)
  */
+void arch_test_fault_de(void);
 void arch_test_fault_ud(void);
+void arch_test_fault_gp(void);
+void arch_test_fault_pf(void);
+void arch_test_fault_df(void);
 #endif
 
 #endif /* ATAOS_KERNEL_ARCH_H */

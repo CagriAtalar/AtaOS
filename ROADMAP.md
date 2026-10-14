@@ -9,7 +9,7 @@ This document outlines the 12 incremental milestones across approximately 60 day
 | Milestone | Window | Focus Area | Status |
 |---|---|---|---|
 | **M1** | Days 1–7 | Repository & Boot Foundation | **IMPLEMENTED / TESTED** |
-| **M2** | Days 8–12 | CPU Fundamentals (GDT, TSS, IDT, Exceptions) | PLANNED |
+| **M2** | Days 8–12 | CPU Fundamentals (GDT, TSS, IDT, Exceptions) | **VERIFIED** |
 | **M3** | Days 13–18 | Physical Memory & Kernel Allocation (PMM, Heap) | PLANNED |
 | **M4** | Days 19–24 | Virtual Memory Management (Paging, Address Spaces) | PLANNED |
 | **M5** | Days 25–30 | Ring 3 & System Calls (Syscall ABI, User Isolation) | PLANNED |
@@ -63,7 +63,7 @@ This document outlines the 12 incremental milestones across approximately 60 day
 - **Acceptance Criteria:**
   - Deliberate fault injection (#DE, #UD, #GP, #PF) triggers structured panic with register dump and halts cleanly.
   - Double fault (#DF) handled safely via IST stack.
-- **Current Status:** PLANNED (Tasks 1–3 implemented and tested: GDT/TSS, IDT, exception stubs, C dispatcher with register dumps, and CPU control register sanity checks).
+- **Current Status:** **VERIFIED** (All acceptance criteria satisfied: GDT/TSS, IDT, exception stubs, C dispatcher with register dumps, and CPU sanity checks verified; automated QEMU smoke tests passed for #DE, #UD, #GP, #PF, and #DF via IST).
 
 ---
 
