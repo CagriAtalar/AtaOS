@@ -25,6 +25,7 @@ void run_test_suite(const char *suite_name, const test_case_t *tests, size_t cou
 extern void test_string_suite(void);
 extern void test_fmt_suite(void);
 extern void test_bits_suite(void);
+extern void test_bitmap_suite(void);
 
 int main(void) {
     printf("=== AtaOS Host Unit Test Runner ===\n\n");
@@ -32,6 +33,7 @@ int main(void) {
     test_string_suite();
     test_fmt_suite();
     test_bits_suite();
+    test_bitmap_suite();
 
     printf("\n=== Summary ===\n");
     printf("Total:  %d\n", g_tests_run);
