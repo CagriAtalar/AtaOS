@@ -71,6 +71,9 @@ void kmain(void)
     /* Initialize custom GDT and TSS (M2 Task 1) */
     arch_gdt_init();
 
+    /* Initialize minimal safe IDT (M2 Task 2) */
+    arch_idt_init();
+
     bootinfo_capture();
     report_boot_info(bootinfo_get());
 

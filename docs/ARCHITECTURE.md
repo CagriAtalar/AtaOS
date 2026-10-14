@@ -329,7 +329,8 @@ unstripped `build/<cfg>/ataos.elf`, QEMU `-s -S` GDB procedure
 | Panic / assert | IMPLEMENTED, TESTED | Panic-injection QEMU test |
 | QEMU test-exit | IMPLEMENTED, TESTED | Observed exit code in runner |
 | GDT/TSS (Task 1) | IMPLEMENTED, TESTED | QEMU BIOS/UEFI + VirtualBox + GDB TR/GDTR/IST check |
-| IDT, exception handling (Tasks 2-3) | PLANNED (M2) | — |
+| Minimal IDT (Task 2) | IMPLEMENTED, TESTED | QEMU BIOS/UEFI + GDB IDTR/IST gate verification |
+| Exception dispatch (Task 3) | PLANNED (M2) | — |
 | PMM | PLANNED (M3) | — |
 | Kernel heap | PLANNED (M3) | — |
 | VMM / page faults | PLANNED (M4) | — |

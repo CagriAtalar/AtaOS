@@ -28,6 +28,15 @@ void arch_early_console_init(void);
  */
 void arch_gdt_init(void);
 
+/*
+ * Initialise the minimal Interrupt Descriptor Table (IDT).
+ * Sets up 256 present 64-bit interrupt gates pointing to an emergency exception
+ * stub, binds critical exception vectors to dedicated IST stacks (NMI -> IST2,
+ * #DF -> IST1, #MC -> IST3), and loads IDTR via `lidt`.
+ * Interrupts remain disabled.
+ */
+void arch_idt_init(void);
+
 /* Write one character to the early console. Callable from any context. */
 void arch_early_console_putc(char c);
 
