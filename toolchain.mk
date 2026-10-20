@@ -68,8 +68,10 @@ ifneq ($(TEST_FAULT),0)
     FLAVOR_DEFS += -DATAOS_TEST_FAULT_PFNX
   else ifeq ($(TEST_FAULT),df)
     FLAVOR_DEFS += -DATAOS_TEST_FAULT_DF
+  else ifeq ($(TEST_FAULT),stackovf)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_STACKOVF
   else
-    $(error Unknown TEST_FAULT='$(TEST_FAULT)'; supported: de, ud, gp, pf, pfwp, pfnx, df)
+    $(error Unknown TEST_FAULT='$(TEST_FAULT)'; supported: de, ud, gp, pf, pfwp, pfnx, df, stackovf)
   endif
 endif
 

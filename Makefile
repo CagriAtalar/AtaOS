@@ -26,6 +26,7 @@ OBJS     := $(addprefix $(OBJ_DIR)/,$(KERNEL_C:.c=.o) $(KERNEL_S:.S=.o))
 
 QEMU         ?= qemu-system-x86_64
 QEMU_DISPLAY ?= none
+QEMU_RUN_FLAGS ?=
 QEMU_COMMON  := -machine q35 -m 256M -cpu qemu64 -smp 1 -no-reboot
 OVMF         ?= $(firstword $(wildcard /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF.fd))
 
@@ -138,9 +139,10 @@ test-qemu: ## Headless QEMU smoke tests (BIOS, UEFI, Panic, and Exceptions)
 	@$(MAKE) --no-print-directory TEST_FAULT=pfwp iso
 	@$(MAKE) --no-print-directory TEST_FAULT=pfnx iso
 	@$(MAKE) --no-print-directory TEST_FAULT=df iso
+	@$(MAKE) --no-print-directory TEST_FAULT=stackovf iso
 	@$(MAKE) --no-print-directory iso
 	@$(ENVCHECK) require qemu
-	python3 tests/qemu/run.py --root $(CURDIR) --mode $(MODE) --log-dir $(LOG_DIR)
+	python3 tests/qemu/run.py --root $(CURDIR) --mode $(MODE) --log-dir $(LOG_DIR) $(QEMU_RUN_FLAGS)
 
 .PHONY: test
 test: test-host test-scripts test-qemu ## All tests

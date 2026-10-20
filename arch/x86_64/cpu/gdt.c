@@ -11,6 +11,7 @@
 #include "kernel/arch.h"
 #include "kernel/compiler.h"
 #include "kernel/log.h"
+#include "kernel/mm_types.h"
 #include "kernel/string.h"
 
 /* The boot stack top defined in arch/x86_64/boot/entry.S */
@@ -22,9 +23,14 @@ extern char boot_stack_top[];
  *   IST2: Non-Maskable Interrupt (NMI)
  *   IST3: Machine Check (#MC)
  */
-static uint8_t s_df_stack[GDT_IST_STACK_SIZE] ATAOS_ALIGNED(16);
-static uint8_t s_nmi_stack[GDT_IST_STACK_SIZE] ATAOS_ALIGNED(16);
-static uint8_t s_mc_stack[GDT_IST_STACK_SIZE] ATAOS_ALIGNED(16);
+struct guarded_ist_stack {
+    uint8_t guard[PAGE_SIZE];
+    uint8_t stack[GDT_IST_STACK_SIZE] ATAOS_ALIGNED(16);
+};
+
+static struct guarded_ist_stack s_df_ist ATAOS_ALIGNED(4096);
+static struct guarded_ist_stack s_nmi_ist ATAOS_ALIGNED(4096);
+static struct guarded_ist_stack s_mc_ist ATAOS_ALIGNED(4096);
 
 /*
  * Active Task State Segment (TSS).
@@ -101,9 +107,9 @@ void arch_gdt_init(void)
      * Populate dedicated IST stack tops (stacks grow downward).
      * Tops must be 16-byte aligned.
      */
-    s_tss.ist1 = (uint64_t)(uintptr_t)(s_df_stack + GDT_IST_STACK_SIZE);
-    s_tss.ist2 = (uint64_t)(uintptr_t)(s_nmi_stack + GDT_IST_STACK_SIZE);
-    s_tss.ist3 = (uint64_t)(uintptr_t)(s_mc_stack + GDT_IST_STACK_SIZE);
+    s_tss.ist1 = (uint64_t)(uintptr_t)(s_df_ist.stack + GDT_IST_STACK_SIZE);
+    s_tss.ist2 = (uint64_t)(uintptr_t)(s_nmi_ist.stack + GDT_IST_STACK_SIZE);
+    s_tss.ist3 = (uint64_t)(uintptr_t)(s_mc_ist.stack + GDT_IST_STACK_SIZE);
 
     /*
      * Set IOPB offset to the size of TSS, meaning the I/O permission bitmap
@@ -169,4 +175,18 @@ const struct tss64 *arch_gdt_get_tss(void)
 const struct gdtr *arch_gdt_get_gdtr(void)
 {
     return &s_gdtr;
+}
+
+uintptr_t arch_gdt_ist_guard(unsigned index)
+{
+    switch (index) {
+    case GDT_IST_DF:
+        return (uintptr_t)s_df_ist.guard;
+    case GDT_IST_NMI:
+        return (uintptr_t)s_nmi_ist.guard;
+    case GDT_IST_MC:
+        return (uintptr_t)s_mc_ist.guard;
+    default:
+        return 0;
+    }
 }

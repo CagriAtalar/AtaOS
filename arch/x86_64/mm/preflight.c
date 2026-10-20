@@ -9,6 +9,7 @@
 #include "kernel/arch.h"
 #include "kernel/panic.h"
 
+extern char boot_stack_guard[];
 extern char boot_stack_bottom[];
 extern char boot_stack_top[];
 extern const uintptr_t x86_exception_stubs[32];
@@ -44,6 +45,16 @@ void arch_mm_boot_stack_bounds(uintptr_t *low, uintptr_t *high)
     ASSERT_ALWAYS(low != NULL && high != NULL);
     *low = (uintptr_t)boot_stack_bottom;
     *high = (uintptr_t)boot_stack_top;
+}
+
+uintptr_t arch_mm_boot_stack_guard_addr(void)
+{
+    return (uintptr_t)boot_stack_guard;
+}
+
+uintptr_t arch_mm_ist_guard_addr(unsigned index)
+{
+    return arch_gdt_ist_guard(index);
 }
 
 uintptr_t arch_mm_exception_dispatch_addr(void)

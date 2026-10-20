@@ -66,17 +66,18 @@ def run_trace(qemu_cmd, trace_log, timeout_sec=5):
         trace_cmd.append("-no-shutdown")
     trace_cmd += ["-d", "int,cpu_reset", "-D", trace_log]
     try:
-        with open(trace_log, "w") as trace_file:
-            proc = subprocess.Popen(
-                trace_cmd,
-                stdout=trace_file,
-                stderr=subprocess.STDOUT,
-                start_new_session=(os.name == "posix"),
-            )
-            try:
-                proc.wait(timeout=timeout_sec)
-            except subprocess.TimeoutExpired:
-                kill_process_group(proc)
+        # QEMU writes the -d trace through -D. Keep stdout away from that file
+        # so serial output cannot truncate or interleave with the trace.
+        proc = subprocess.Popen(
+            trace_cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=(os.name == "posix"),
+        )
+        try:
+            proc.wait(timeout=timeout_sec)
+        except subprocess.TimeoutExpired:
+            kill_process_group(proc)
     except OSError as exc:
         print(f"  Trace re-run failed: {exc}")
         return
@@ -142,6 +143,8 @@ def main():
     parser.add_argument("--log-dir", default="build/logs", help="Directory for test logs")
     parser.add_argument("--trace-on-timeout", action="store_true",
                         help="Re-run a timed-out test with -d int,cpu_reset diagnostics")
+    parser.add_argument("--require-all", action="store_true",
+                        help="Fail when a test image or firmware is missing instead of skipping")
     args = parser.parse_args()
 
     os.makedirs(args.log_dir, exist_ok=True)
@@ -235,7 +238,11 @@ def main():
         ("pfnx", "Page Fault (#PF NX)",
          ["Vector: 14 (Page Fault (#PF))", "origin=kernel access=fetch cause=protection",
           "hint=instruction fetch from an NX page"]),
-        ("df", "Double Fault (#DF via IST)", ["Vector: 8 (Double Fault (#DF))"]),
+        ("df", "Double Fault (#DF via IST)",
+         ["Vector: 8 (Double Fault (#DF))", "DF: delivered on IST1"]),
+        ("stackovf", "Kernel stack guard (#DF via IST1)",
+         ["Vector: 8 (Double Fault (#DF))", "DF: delivered on IST1",
+          "System halted."]),
     ]
 
     for flavor, desc, extra_markers in fault_tests:
@@ -264,6 +271,9 @@ def main():
     print(f"Skipped: {tests_skipped}")
 
     if tests_failed > 0:
+        return 1
+    if args.require_all and tests_skipped > 0:
+        print("error: --require-all was requested but some tests were skipped")
         return 1
     return 0
 

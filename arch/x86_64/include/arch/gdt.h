@@ -75,4 +75,7 @@ void arch_gdt_flush(const struct gdtr *d, uint16_t code_sel, uint16_t data_sel, 
 const struct tss64 *arch_gdt_get_tss(void);
 const struct gdtr *arch_gdt_get_gdtr(void);
 
+/* Start of the guard page immediately below an IST stack (0 if invalid). */
+uintptr_t arch_gdt_ist_guard(unsigned index);
+
 #endif /* ATAOS_ARCH_X86_64_GDT_H */

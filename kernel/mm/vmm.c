@@ -191,6 +191,26 @@ static uint64_t copy_table(uint64_t src_table_phys, unsigned level, uint64_t bas
  * exist before any address space does; mappings beyond the first 2 MiB must
  * be created before the first address space exists — documented in vmm.h).
  */
+/*
+ * Remove a dedicated 4 KiB guard page from the copied kernel half. A large
+ * leaf covering the guard cannot be split safely here, so that is a boot
+ * error rather than silently leaving the guard mapped.
+ */
+static void unmap_guard_page(uint64_t guard_addr, const char *name)
+{
+    if (guard_addr == 0)
+        return;
+
+    struct mm_query q;
+    mm_query_mapping(s_master_pml4, guard_addr, &q);
+    if (!q.present)
+        return; /* already absent in the bootloader mapping */
+    if (!q.leaf || q.level != MM_LEVEL_PT ||
+        !mm_clear_leaf(s_master_pml4, guard_addr, false, NULL))
+        PANIC("vmm: %s guard page 0x%lx is not a removable 4 KiB PTE",
+              name, (unsigned long)guard_addr);
+}
+
 static void preseed_region_slot(uint64_t region_base, const char *name)
 {
     unsigned l4 = (unsigned)((region_base >> ARCH_MM4_SHIFT_L4) & (ARCH_MM4_TABLE_ENTRIES - 1));
@@ -366,11 +386,29 @@ static void audit_kernel_half(void)
     size_t data_pages =
         (size_t)(((uint64_t)r.data_end - (uint64_t)r.data_start) / PAGE_SIZE);
 
+    /*
+     * The boot and IST guard pages live in the writable image range but are
+     * deliberately unmapped. Count them so the audit still proves every
+     * remaining data page is present, RW and NX.
+     */
+    size_t guard_pages = 0;
+    const uintptr_t guards[] = {
+        (uintptr_t)arch_mm_boot_stack_guard_addr(),
+        (uintptr_t)arch_mm_ist_guard_addr(1),
+        (uintptr_t)arch_mm_ist_guard_addr(2),
+        (uintptr_t)arch_mm_ist_guard_addr(3),
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(guards); i++) {
+        if (guards[i] >= (uintptr_t)r.data_start &&
+            guards[i] < (uintptr_t)r.data_end)
+            guard_pages++;
+    }
+
     ASSERT_ALWAYS(counts.exec > 0);
     ASSERT_ALWAYS(counts.exec == counts.text);
     ASSERT_ALWAYS(counts.text == text_pages);
     ASSERT_ALWAYS(counts.rodata == rodata_pages);
-    ASSERT_ALWAYS(counts.data == data_pages);
+    ASSERT_ALWAYS(counts.data + guard_pages == data_pages);
 
     log_info("vmm: audit clean (%zu leaves: %zu text RX, %zu rodata R, %zu data RW, "
              "%zu other NX; %zu executable, no U bit, no W|X)",
@@ -579,6 +617,16 @@ static void preflight_or_panic(const struct bootinfo *bi)
     add_spec(specs, &count, ARRAY_SIZE(specs), VMM_DYNMAP_BASE, MM_EXPECT_UNMAPPED,
              "unmapped dynmap");
 
+    /* Stack guards must be absent before any stack can overflow into them. */
+    add_spec(specs, &count, ARRAY_SIZE(specs), arch_mm_boot_stack_guard_addr(),
+             MM_EXPECT_UNMAPPED, "boot-stack guard");
+    add_spec(specs, &count, ARRAY_SIZE(specs), arch_mm_ist_guard_addr(1),
+             MM_EXPECT_UNMAPPED, "IST1 guard");
+    add_spec(specs, &count, ARRAY_SIZE(specs), arch_mm_ist_guard_addr(2),
+             MM_EXPECT_UNMAPPED, "IST2 guard");
+    add_spec(specs, &count, ARRAY_SIZE(specs), arch_mm_ist_guard_addr(3),
+             MM_EXPECT_UNMAPPED, "IST3 guard");
+
     struct mm_preflight_failure failure;
     if (!mm_check_mappings(s_master_pml4, specs, count, &failure)) {
         const char *actual = failure.actual.present
@@ -667,6 +715,11 @@ void vmm_init(const struct bootinfo *bi)
     preseed_region_slot(VMM_KERN_HEAP_BASE, "kernel heap");
     preseed_region_slot(VMM_KERN_STACKS_BASE, "kernel stacks");
     preseed_region_slot(VMM_DYNMAP_BASE, "dynmap");
+
+    unmap_guard_page(arch_mm_boot_stack_guard_addr(), "boot stack");
+    unmap_guard_page(arch_mm_ist_guard_addr(1), "IST1");
+    unmap_guard_page(arch_mm_ist_guard_addr(2), "IST2");
+    unmap_guard_page(arch_mm_ist_guard_addr(3), "IST3");
 
     audit_kernel_half();
     preflight_or_panic(bi);

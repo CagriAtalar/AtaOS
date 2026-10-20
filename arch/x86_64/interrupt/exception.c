@@ -88,6 +88,9 @@ void x86_exception_dispatch(struct trap_frame *frame)
     kprintf("R12: 0x%016lx  R13: 0x%016lx  R14: 0x%016lx  R15: 0x%016lx\n",
             frame->r12, frame->r13, frame->r14, frame->r15);
 
+    if (frame->vector == 8)
+        kprintf("DF: delivered on IST1 (stack or guard-page overflow path)\n");
+
     if (frame->vector == 14) {
         struct x86_page_fault pf = x86_decode_page_fault(frame->error_code);
 

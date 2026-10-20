@@ -113,6 +113,8 @@ void kmain(void)
     arch_test_fault_pfnx();
 #elif defined(ATAOS_TEST_FAULT_DF)
     arch_test_fault_df();
+#elif defined(ATAOS_TEST_FAULT_STACKOVF)
+    arch_test_fault_stackovf();
 #elif defined(ATAOS_TEST_FAULT)
     arch_test_fault_ud();
 #endif

@@ -167,6 +167,13 @@ struct arch_mm_kernel_tables {
 void arch_mm_kernel_tables(struct arch_mm_kernel_tables *out);
 uintptr_t arch_mm_read_rsp(void);
 void arch_mm_boot_stack_bounds(uintptr_t *low, uintptr_t *high);
+
+/* Guard page immediately below the boot stack (4 KiB, unmapped in master). */
+uintptr_t arch_mm_boot_stack_guard_addr(void);
+
+/* Guard page immediately below IST stack `index` (1..3), or 0. */
+uintptr_t arch_mm_ist_guard_addr(unsigned index);
+
 uintptr_t arch_mm_exception_dispatch_addr(void);
 uintptr_t arch_mm_exception_stub_addr(unsigned vector);
 
@@ -196,6 +203,8 @@ void arch_test_exit(int code);
  *   - #PF/write-protect: write to an RX kernel text page (W^X fault)
  *   - #PF/NX: instruction fetch from an NX kernel data page
  *   - #DF: Double Fault (stack exhaustion/corruption switching to IST1)
+ *   - stack overflow: push into the unmapped boot-stack guard page, which
+ *     escalates to #DF on IST1
  */
 void arch_test_fault_de(void);
 void arch_test_fault_ud(void);
@@ -204,6 +213,7 @@ void arch_test_fault_pf(void);
 void arch_test_fault_pfwp(void);
 void arch_test_fault_pfnx(void);
 void arch_test_fault_df(void);
+void arch_test_fault_stackovf(void);
 #endif
 
 #endif /* ATAOS_KERNEL_ARCH_H */
