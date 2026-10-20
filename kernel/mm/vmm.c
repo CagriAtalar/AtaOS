@@ -22,6 +22,7 @@
 #include "kernel/pmm.h"
 
 #include "mm_internal.h"
+#include "vmm_internal.h"
 
 static uint64_t s_master_pml4 = 0;
 static size_t s_master_table_frames = 0; /* frames currently owned by master space */
@@ -376,47 +377,13 @@ static void audit_kernel_half(void)
              counts.rodata, counts.data, counts.other, counts.exec);
 }
 
-int vmm_check_flags(unsigned flags)
-{
-    if ((flags & ~(VMM_WRITE | VMM_EXEC | VMM_USER)) != 0)
-        return -EINVAL;
-    if ((flags & VMM_WRITE) != 0 && (flags & VMM_EXEC) != 0)
-        return -EINVAL; /* W^X is never granted */
-    return 0;
-}
-
-static int validate_range(uintptr_t vaddr, uint64_t paddr, size_t npages, unsigned flags)
-{
-    if ((vaddr & PAGE_OFFSET_MASK) != 0 || (paddr & PAGE_OFFSET_MASK) != 0)
-        return -EINVAL;
-    if (vmm_check_flags(flags) != 0)
-        return -EINVAL;
-    if ((flags & VMM_USER) != 0)
-        return -EINVAL; /* master mappings are kernel-only */
-    if (npages == 0)
-        return 0;
-    if (npages > (SIZE_MAX / PAGE_SIZE))
-        return -EINVAL;
-
-    uint64_t bytes = (uint64_t)npages * PAGE_SIZE;
-    if (vaddr < VMM_DYNMAP_BASE || vaddr >= VMM_DYNMAP_END)
-        return -EINVAL;
-    uint64_t vaddr_end = (uint64_t)vaddr + bytes;
-    if (vaddr_end < (uint64_t)vaddr || vaddr_end > VMM_DYNMAP_END)
-        return -EINVAL;
-    uint64_t paddr_end = paddr + bytes;
-    if (paddr_end < paddr)
-        return -EINVAL;
-    return 0;
-}
-
 int vmm_map(uintptr_t vaddr, uint64_t paddr, size_t npages, unsigned flags)
 {
     ASSERT_ALWAYS(s_vmm_initialised);
     if (npages == 0)
         return 0;
 
-    int status = validate_range(vaddr, paddr, npages, flags);
+    int status = vmm_validate_range(vaddr, paddr, npages, flags);
     if (status != 0)
         return status;
 
