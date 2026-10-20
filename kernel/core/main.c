@@ -8,6 +8,7 @@
  */
 #include "buildinfo.h"
 #include "kernel/arch.h"
+#include "kernel/aspace.h"
 #include "kernel/bootinfo.h"
 #include "kernel/kernel.h"
 #include "kernel/log.h"
@@ -89,6 +90,9 @@ void kmain(void)
 
     /* Initialize kernel heap allocator (M3; uses the HHDM kept by vmm_init) */
     heap_init();
+
+    /* M4 address-space lifecycle and in-kernel frame-accounting suite. */
+    aspace_self_test();
 
 #ifdef ATAOS_TEST_PANIC
     /* Deliberate failure used only by the panic-detection test (TEST_PANIC=1). */

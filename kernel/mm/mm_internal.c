@@ -334,6 +334,27 @@ bool mm_clear_leaf(uint64_t root, uint64_t vaddr, bool allow_free, size_t *count
     return true;
 }
 
+void mm_free_subtree(uint64_t table, unsigned level, size_t *counter)
+{
+    ASSERT_ALWAYS(level >= MM_LEVEL_PT && level <= MM_LEVEL_PDPT);
+
+    for (unsigned i = 0; i < ARCH_MM4_TABLE_ENTRIES; i++) {
+        uint64_t entry = arch_mm_table_read(table, i);
+        struct arch_mm_entry_flags f;
+        arch_mm_entry_flags(entry, level, &f);
+        if (!f.present)
+            continue;
+
+        if (arch_mm_entry_is_table(entry, level)) {
+            ASSERT_ALWAYS(level > MM_LEVEL_PT);
+            mm_free_subtree(arch_mm_entry_phys(entry), level - 1, counter);
+        }
+        /* A present non-table entry is a large leaf; its frame is not ours. */
+    }
+
+    mm_free_table(table, counter);
+}
+
 bool mm_large_leaf_intersects_image(uint64_t vaddr, unsigned level,
                                     const struct arch_image_ranges *ranges)
 {

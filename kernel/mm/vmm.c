@@ -14,6 +14,7 @@
  */
 #include "kernel/vmm.h"
 #include "kernel/arch.h"
+#include "kernel/aspace.h"
 #include "kernel/bits.h"
 #include "kernel/bootinfo.h"
 #include "kernel/errno.h"
@@ -669,6 +670,7 @@ void vmm_init(const struct bootinfo *bi)
 
     audit_kernel_half();
     preflight_or_panic(bi);
+    aspace_init(s_master_pml4);
 
     arch_mm_set_cr3(s_master_pml4);
     s_vmm_initialised = true;

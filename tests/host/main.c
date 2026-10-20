@@ -39,6 +39,7 @@ extern void test_bits_suite(void);
 extern void test_bitmap_suite(void);
 extern void test_heap_suite(void);
 extern void test_mm_suite(void);
+extern void test_aspace_suite(void);
 extern void test_pf_suite(void);
 
 int main(void) {
@@ -50,6 +51,7 @@ int main(void) {
     test_bitmap_suite();
     test_heap_suite();
     test_mm_suite();
+    test_aspace_suite();
     test_pf_suite();
 
     printf("\n=== Summary ===\n");

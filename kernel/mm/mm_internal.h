@@ -88,6 +88,14 @@ void mm_query_mapping(uint64_t root, uint64_t vaddr, struct mm_query *out);
 bool mm_clear_leaf(uint64_t root, uint64_t vaddr, bool allow_free, size_t *counter);
 
 /*
+ * Release every table frame in the subtree rooted at `table` (whose entries
+ * sit at `level`) and then the table itself. Present leaf entries are left
+ * untouched: leaf data frames are caller-owned. Used by aspace_destroy() for
+ * the private user half only.
+ */
+void mm_free_subtree(uint64_t table, unsigned level, size_t *counter);
+
+/*
  * True when a large leaf at `level` (2 or 3) covering `vaddr` overlaps any
  * part of the kernel image. Re-protecting such a leaf would either make image
  * data executable or make text non-executable, so boot must panic instead.
