@@ -263,6 +263,7 @@ System halted.
 | `2f2385b` | `feat(mm): guard boot and ist stacks with unmapped pages` | host 40/40, QEMU 11/11 |
 | `3aebbd0` | `chore(ci): require all qemu images and ignore pycache` | commit validator, runner direct run |
 | `744e30c` | `doc(mm): document m4 status, guards and page-fault diagnostics` | review |
+| `d4ef012` | `doc(mm): refresh kernel mm readme status` | review |
 | *(this report)* | `doc(mm): add m4 checkpoint b report` | this document |
 
 All messages were validated with `scripts/check-commit-msg.sh`. Nothing was
