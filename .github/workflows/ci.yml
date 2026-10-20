@@ -46,4 +46,4 @@ jobs:
         run: make repro-check
 
       - name: Run headless QEMU smoke tests
-        run: make test-qemu
+        run: make test-qemu QEMU_RUN_FLAGS=--require-all
