@@ -101,16 +101,18 @@ run-debug: $(ISO) need-qemu ## BIOS boot paused, GDB stub on tcp::1234 (see docs
 ##@ Tests
 
 HOST_BIN := $(BUILD_ROOT)/host/ataos-host-tests
-HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c kernel/mm/heap.c
+HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c \
+             kernel/mm/heap.c kernel/mm/mm_internal.c arch/x86_64/mm/paging_encode.c
 HOST_SAN := $(shell echo 'int main(void){return 0;}' | $(HOST_CC) -x c - -fsanitize=address,undefined -o /dev/null >/dev/null 2>&1 && echo -fsanitize=address,undefined -fno-sanitize-recover=all)
-HOST_HDRS := $(wildcard include/kernel/*.h tests/host/*.h)
+HOST_HDRS := $(wildcard include/kernel/*.h tests/host/*.h kernel/mm/*.h arch/x86_64/include/arch/*.h)
 
 $(HOST_BIN): $(HOST_SRCS) $(HOST_HDRS)
 	@$(ENVCHECK) require hosttest
 	@mkdir -p $(dir $@)
 	$(HOST_CC) -std=gnu11 -O1 -g -fno-omit-frame-pointer -fno-builtin -Wall -Wextra -Werror \
 	    -Wno-format-truncation -Wno-format-overflow \
-	    -DATAOS_HOST_TEST -Iinclude -Itests/host $(HOST_SAN) $(HOST_SRCS) -o $@
+	    -DATAOS_HOST_TEST -Iinclude -Itests/host -Ikernel/mm -Iarch/x86_64/include \
+	    $(HOST_SAN) $(HOST_SRCS) -o $@
 	@[ -n "$(HOST_SAN)" ] || echo "note: sanitizers unavailable, host tests built WITHOUT ASan/UBSan"
 
 .PHONY: test-host

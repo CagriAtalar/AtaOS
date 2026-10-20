@@ -12,6 +12,7 @@
 #include "kernel/log.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
+#include "kernel/vmm.h"
 #include "kernel/heap.h"
 
 static void report_memory_map(const struct bootinfo *bi)
@@ -82,7 +83,10 @@ void kmain(void)
     /* Initialize physical memory manager (M3) */
     pmm_init(bootinfo_get());
 
-    /* Initialize kernel heap allocator (M3) */
+    /* Build master kernel page tables and switch CR3 (M4) */
+    vmm_init(bootinfo_get());
+
+    /* Initialize kernel heap allocator (M3; uses the HHDM kept by vmm_init) */
     heap_init();
 
 #ifdef ATAOS_TEST_PANIC

@@ -24,17 +24,22 @@ SECTIONS
     __kernel_start = .;
 
     .text : ALIGN(4096) {
+        __text_start = .;
         *(.text.boot)
         *(.text .text.*)
+        __text_end = .;
     } :text
 
     . = ALIGN(4096);
     .rodata : {
+        __rodata_start = .;
         *(.rodata .rodata.*)
+        __rodata_end = .;
     } :rodata
 
     . = ALIGN(4096);
     .data : {
+        __data_start = .;
         *(.data .data.*)
     } :data
 
@@ -45,11 +50,19 @@ SECTIONS
     } :data
 
     .bss : {
+        __bss_start = .;
         *(.bss .bss.*)
         *(COMMON)
+        __bss_end = .;
     } :data
 
     . = ALIGN(4096);
+    /*
+     * __data_end covers the whole writable image (.data + .limine_requests
+     * + .bss): kernel/mm re-protects [__data_start, __data_end) as RW+NX in
+     * its own page tables (M4). __kernel_end is the page-aligned image end.
+     */
+    __data_end = .;
     __kernel_end = .;
 
     /DISCARD/ : {

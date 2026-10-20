@@ -11,8 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "kernel/bootinfo.h"
+#include "kernel/mm_types.h"
 
-#define PAGE_SIZE 4096ULL
 #define PMM_FRAME_SIZE PAGE_SIZE
 
 /* Returned by pmm_alloc_frame() when physical memory is exhausted. */
@@ -64,5 +64,12 @@ void pmm_free_frames(uintptr_t paddr, size_t count);
  * Query current memory accounting statistics.
  */
 void pmm_get_stats(struct pmm_stats *out);
+
+/*
+ * Physical address of the first page holding the PMM bitmap. The bitmap may
+ * span multiple frames; this returns the base for diagnostics and the boot
+ * pre-flight mapping check (M4). Valid only after pmm_init().
+ */
+uintptr_t pmm_bitmap_phys(void);
 
 #endif /* ATAOS_KERNEL_PMM_H */

@@ -38,6 +38,7 @@ extern void test_fmt_suite(void);
 extern void test_bits_suite(void);
 extern void test_bitmap_suite(void);
 extern void test_heap_suite(void);
+extern void test_mm_suite(void);
 
 int main(void) {
     printf("=== AtaOS Host Unit Test Runner ===\n\n");
@@ -47,6 +48,7 @@ int main(void) {
     test_bits_suite();
     test_bitmap_suite();
     test_heap_suite();
+    test_mm_suite();
 
     printf("\n=== Summary ===\n");
     printf("Total:  %d\n", g_tests_run);
