@@ -103,6 +103,10 @@ void kmain(void)
     arch_test_fault_gp();
 #elif defined(ATAOS_TEST_FAULT_PF)
     arch_test_fault_pf();
+#elif defined(ATAOS_TEST_FAULT_PFWP)
+    arch_test_fault_pfwp();
+#elif defined(ATAOS_TEST_FAULT_PFNX)
+    arch_test_fault_pfnx();
 #elif defined(ATAOS_TEST_FAULT_DF)
     arch_test_fault_df();
 #elif defined(ATAOS_TEST_FAULT)

@@ -226,7 +226,15 @@ def main():
         ("de", "Divide Error (#DE)", ["Vector: 0 (Divide Error (#DE))"]),
         ("ud", "Invalid Opcode (#UD)", ["Vector: 6 (Invalid Opcode (#UD))"]),
         ("gp", "General Protection Fault (#GP)", ["Vector: 13 (General Protection Fault (#GP))"]),
-        ("pf", "Page Fault (#PF)", ["Vector: 14 (Page Fault (#PF))", "CR2: 0x0000000000000100"]),
+        ("pf", "Page Fault (#PF)",
+         ["Vector: 14 (Page Fault (#PF))", "CR2: 0x0000000000000100",
+          "PF: CR2=0x0000000000000100 origin=kernel access=write cause=not-present fetch=data"]),
+        ("pfwp", "Page Fault (#PF write-protect)",
+         ["Vector: 14 (Page Fault (#PF))", "origin=kernel access=write cause=protection",
+          "hint=kernel write to a read-only/W^X-protected page"]),
+        ("pfnx", "Page Fault (#PF NX)",
+         ["Vector: 14 (Page Fault (#PF))", "origin=kernel access=fetch cause=protection",
+          "hint=instruction fetch from an NX page"]),
         ("df", "Double Fault (#DF via IST)", ["Vector: 8 (Double Fault (#DF))"]),
     ]
 

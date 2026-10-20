@@ -51,6 +51,23 @@ void arch_test_fault_pf(void)
     *ptr = 0x42;
 }
 
+/* Defined by arch/x86_64/linker.ld. */
+extern char __text_start[];
+extern char __data_start[];
+
+void arch_test_fault_pfwp(void)
+{
+    /* Text is mapped RX by vmm_init(); writing it must raise a protection #PF. */
+    volatile uint8_t *ptr = (volatile uint8_t *)__text_start;
+    *ptr = 0x90;
+}
+
+void arch_test_fault_pfnx(void)
+{
+    /* Data is mapped RW+NX by vmm_init(); fetching it must raise an NX #PF. */
+    __asm__ volatile("call *%0" : : "r"((uintptr_t)__data_start) : "memory");
+}
+
 void arch_test_fault_df(void)
 {
     /*

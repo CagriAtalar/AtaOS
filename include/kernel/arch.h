@@ -193,12 +193,16 @@ void arch_test_exit(int code);
  *   - #UD: Invalid Opcode (via `ud2`)
  *   - #GP: General Protection Fault (non-canonical memory access)
  *   - #PF: Page Fault (unmapped page access)
+ *   - #PF/write-protect: write to an RX kernel text page (W^X fault)
+ *   - #PF/NX: instruction fetch from an NX kernel data page
  *   - #DF: Double Fault (stack exhaustion/corruption switching to IST1)
  */
 void arch_test_fault_de(void);
 void arch_test_fault_ud(void);
 void arch_test_fault_gp(void);
 void arch_test_fault_pf(void);
+void arch_test_fault_pfwp(void);
+void arch_test_fault_pfnx(void);
 void arch_test_fault_df(void);
 #endif
 
