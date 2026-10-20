@@ -98,7 +98,8 @@ This document outlines the 12 incremental milestones across approximately 60 day
   - Kernel memory inaccessible to user mode (U bit cleared).
   - Access to unmapped page triggers expected fault.
   - Address space destruction frees all owned table frames and returns counters to baseline.
-- **Current Status:** PLANNED.
+- **Current Status:** **TESTED** (M4 core complete: master PML4 with W^X/NX audit, pre-flight before CR3, vmm map/unmap, decoded #PF, aspace create/destroy/map/unmap, boot/IST guard pages, 40 host tests and 11 QEMU tests pass. The U-bit audit proves the kernel half is supervisor-only; the Ring 3 negative-access test and "user fault kills only that process" depend on M5 and are not claimed here.)
+- **M5 follow-ups:** free mapped leaf data frames during process teardown before `aspace_destroy`; add the user-stack guard; add a Ring 3 read of a kernel address and a user-fault isolation test; switch `TSS.RSP0` to per-thread kernel stacks when M6 lands.
 
 ---
 

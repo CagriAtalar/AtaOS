@@ -56,15 +56,15 @@ executables using a documented syscall ABI.
 ```
 Firmware -> Limine -> kernel entry (_start) -> kmain
    -> early init (serial, log, boot-info capture)       [M1, IMPLEMENTED]
-   -> CPU init (GDT/TSS, IDT, exceptions)               [M2, PLANNED]
-   -> memory init (PMM, VMM, heap)                      [M3-M4, PLANNED]
+   -> CPU init (GDT/TSS, IDT, exceptions)               [M2, IMPLEMENTED]
+   -> memory init (PMM, VMM, heap)                      [M3-M4, IMPLEMENTED]
    -> syscall + Ring 3 entry                            [M5, PLANNED]
    -> timer + scheduler init                            [M6, PLANNED]
    -> initial user process (init)                       [M7-M9, PLANNED]
 ```
 
-In M1 the boot path stops after the boot summary and a final marker
-(`[ataos] boot complete`) and then halts safely. See [BOOT.md](BOOT.md).
+The current M4 boot path stops after the VMM/aspace self-tests and a final
+marker (`[ataos] boot complete`) and then halts safely. See [BOOT.md](BOOT.md).
 
 ## 3. Modules and responsibilities
 
@@ -142,7 +142,7 @@ CPUID reports them (M4).
 | GDT / segment regs | Valid Limine GDT (layout unspecified for kernel use) | Own GDT + TSS (M2) |
 | IDT | **None** valid for kernel use | Own IDT (M2) |
 | Page tables | Bootloader tables: kernel image mapped higher-half, HHDM mapped | Own PML4 derived from these mappings (M4) |
-| Stack | Bootloader-provided | Own 16 KiB boot stack in `.bss` at `_start` (M1) |
+| Stack | Bootloader-provided | Own 16 KiB boot stack in `.bss` with a 4 KiB guard page at `_start` (M1/M4) |
 | Control regs | CR0/CR4/EFER per protocol (see PROTOCOL.md "Machine State at Entry") | Explicit setup of WP, NXE, SMEP/SMAP, FPU policy (M2/M4) |
 | FPU/SSE | Not guaranteed | **Policy:** kernel built without SSE/x87 (`-mno-sse -mno-80387`). User FPU state: lazy-or-eager save decided at M6 (ADR-0011 notes eager `fxsave` as default). |
 | Per-CPU data | None | `struct percpu` reached via `GS` base (`swapgs` on user transitions) (M2/M5) |
@@ -169,7 +169,7 @@ Three distinct address kinds are never interchangeable:
 Conversions go through named helpers (`phys_to_hhdm`, `hhdm_to_phys`);
 HHDM base is read from the bootloader, never assumed.
 
-Planned components (all `PLANNED`):
+Components and status:
 
 * **PMM** (M3): bitmap frame allocator over Limine-usable regions; ADR-0006.
   Frames are the only unit of ownership; every frame has exactly one owner
@@ -177,15 +177,21 @@ Planned components (all `PLANNED`):
 * **VMM** (M4): 4-level tables; 4 KiB pages only initially (2 MiB pages only for
   HHDM if profiled); W^X enforced by `vmm_map` rejecting `W|X`; new user address
   spaces copy the kernel-half PML4 entries (shared) and start with an empty
-  user half (private); ADR-0007.
+  user half (private); ADR-0007. Boot/IST guard pages are unmapped before the
+  master CR3 is loaded.
+* **Address spaces** (M4): `aspace_create`/`destroy`/`map`/`unmap`/`resolve`.
+  Destroy frees private page-table frames and the PML4; leaf data frames stay
+  caller-owned until process teardown in M5/M7.
 * **Heap** (M3/M4): `kmalloc/kcalloc/kfree` over PMM→HHDM initially; header-based
   first-fit with size checks; later moves to its own virtual region. `krealloc`
   only when a caller needs it.
-* **Page faults**: kernel-mode fault = panic with register dump; user-mode fault
-  at a user address = terminate process (until demand paging exists).
-* **User copy**: `copy_from_user`/`copy_to_user`/`strncpy_from_user` validate
-  range (overflow-safe, `< USER_TOP`), then access via an exception-table-guarded
-  copy so a fault returns `-EFAULT` instead of panicking.
+* **Page faults** (M2/M4): every documented error-code bit is decoded and the
+  dispatcher prints CR2, origin/access/cause/fetch and a hint. A kernel-mode
+  fault is fatal; user-mode termination is M5.
+* **User copy** (M5, planned): `copy_from_user`/`copy_to_user`/
+  `strncpy_from_user` validate range (overflow-safe, `< USER_TOP`), then access
+  via an exception-table-guarded copy so a fault returns `-EFAULT` instead of
+  panicking.
 
 ## 7. Interrupts, exceptions, concurrency
 
@@ -331,9 +337,10 @@ unstripped `build/<cfg>/ataos.elf`, QEMU `-s -S` GDB procedure
 | GDT/TSS (Task 1) | IMPLEMENTED, TESTED | QEMU BIOS/UEFI + VirtualBox + GDB TR/GDTR/IST check |
 | Minimal IDT (Task 2) | IMPLEMENTED, TESTED | QEMU BIOS/UEFI + GDB IDTR/IST gate verification |
 | Exception dispatch (Task 3) | IMPLEMENTED, TESTED | Verified across #DE, #UD, #GP, #PF, and #DF via IST |
-| PMM | PLANNED (M3) | — |
-| Kernel heap | PLANNED (M3) | — |
-| VMM / page faults | PLANNED (M4) | — |
+| PMM | IMPLEMENTED, TESTED | M3 host tests + QEMU self-test |
+| Kernel heap | IMPLEMENTED, TESTED | Host tests + QEMU self-test |
+| VMM / page faults | IMPLEMENTED, TESTED | M4 host tests + 11 QEMU tests (boot, W^X/NX, #PF decode, guards) |
+| Address spaces | IMPLEMENTED, TESTED | Host lifecycle tests + in-kernel PMM-counter suite |
 | Ring 3 + syscalls | PLANNED (M5) | — |
 | Timer + scheduler | PLANNED (M6) | — |
 | ELF loader | PLANNED (M7) | — |
