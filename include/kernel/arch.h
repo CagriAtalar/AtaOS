@@ -5,8 +5,9 @@
  * Architecture-independent code may call these functions; it must not use
  * inline assembly, port I/O or control registers directly.
  *
- * Status: M1 contains only the early-console, halt and test-exit hooks. The
- * interface grows milestone by milestone (see docs/ARCHITECTURE.md).
+ * Status: M4. The interface contains the early-console, halt and test-exit
+ * hooks plus the page-table/CPU-memory boundary used by kernel/mm. It grows
+ * milestone by milestone (see docs/ARCHITECTURE.md).
  */
 #ifndef ATAOS_KERNEL_ARCH_H
 #define ATAOS_KERNEL_ARCH_H

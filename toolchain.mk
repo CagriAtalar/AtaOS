@@ -80,7 +80,7 @@ WARN_FLAGS := -Wall -Wextra -Wshadow -Wvla -Wstrict-prototypes -Wmissing-prototy
 # -mno-red-zone             interrupts would clobber the red zone below RSP
 # -mgeneral-regs-only etc.  no x87/MMX/SSE in the kernel (no FPU state saving yet)
 # -fno-pic -fno-pie         fixed-address image, no relocations at load
-# -fno-stack-protector      no guard-variable runtime yet (revisit at M4)
+# -fno-stack-protector      no guard-variable runtime/TLS yet (later milestone)
 # -fno-stack-check          no probes (no libc support)
 # -fno-omit-frame-pointer   stack walking / GDB
 # -fno-lto                  simple, debuggable output

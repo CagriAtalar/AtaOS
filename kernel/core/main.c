@@ -1,9 +1,10 @@
 /*
  * main.c - kernel entry (called from arch/x86_64/boot/entry.S).
  *
- * M1 scope: bring up the early console, capture and report boot information,
- * print the final boot marker and halt safely. Nothing else is initialised
- * (see docs/ARCHITECTURE.md for the planned init sequence).
+ * M4 init order: early console, GDT/TSS, IDT, boot information, PMM, master
+ * kernel page tables (CR3 switch and self-test), then the kernel heap. The
+ * final boot marker is printed before halting safely; see
+ * docs/ARCHITECTURE.md for the planned sequence beyond M4.
  */
 #include "buildinfo.h"
 #include "kernel/arch.h"

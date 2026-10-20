@@ -73,8 +73,10 @@ void vmm_init(const struct bootinfo *bi);
 /*
  * Map `npages` pages into the master kernel address space at `vaddr`
  * (page-aligned) from `paddr` (page-aligned). Only the VMM_DYNMAP window
- * is acceptable. Returns 0 or -EINVAL/-EINVAL-aligned on policy violation.
- * Frames stay owned by the caller: vmm_unmap() only removes translations.
+ * is acceptable. Returns 0, -EINVAL on a malformed range/flags, -EEXIST when
+ * any page is already mapped, or -ENOMEM when an intermediate table cannot be
+ * allocated. Frames stay owned by the caller: vmm_unmap() only removes
+ * translations.
  */
 int vmm_map(uintptr_t vaddr, uint64_t paddr, size_t npages, unsigned flags);
 
@@ -83,14 +85,15 @@ int vmm_map(uintptr_t vaddr, uint64_t paddr, size_t npages, unsigned flags);
  * invalidate them in the CPU. Dynmap table frames are preseeded (ADR-0007)
  * and are deliberately kept after unmaps so mappings after the first
  * address space is created never need new top-level entries. Returns 0, or
- * -EINVAL when the range is unmapped/misaligned/outside the dynmap window.
+ * -EINVAL for a misaligned/out-of-window range, or -ENOENT when any page in
+ * the range was not mapped (all mapped pages are still removed).
  */
 int vmm_unmap(uintptr_t vaddr, size_t npages);
 
 /*
  * Translate `vaddr` in the master tables. Returns true and sets *paddr_out
- * to the backing physical address when mapped (4 KiB or large page);
- * false when no mapping is present.
+ * to the exact physical address (frame or large-page base plus the in-page
+ * offset) when mapped; false when no mapping is present.
  */
 bool vmm_resolve(uintptr_t vaddr, uint64_t *paddr_out);
 
