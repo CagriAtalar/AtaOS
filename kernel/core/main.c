@@ -1,17 +1,20 @@
 /*
  * main.c - kernel entry (called from arch/x86_64/boot/entry.S).
  *
- * M1 scope: bring up the early console, capture and report boot information,
- * print the final boot marker and halt safely. Nothing else is initialised
- * (see docs/ARCHITECTURE.md for the planned init sequence).
+ * M4 init order: early console, GDT/TSS, IDT, boot information, PMM, master
+ * kernel page tables (CR3 switch and self-test), then the kernel heap. The
+ * final boot marker is printed before halting safely; see
+ * docs/ARCHITECTURE.md for the planned sequence beyond M4.
  */
 #include "buildinfo.h"
 #include "kernel/arch.h"
+#include "kernel/aspace.h"
 #include "kernel/bootinfo.h"
 #include "kernel/kernel.h"
 #include "kernel/log.h"
 #include "kernel/panic.h"
 #include "kernel/pmm.h"
+#include "kernel/vmm.h"
 #include "kernel/heap.h"
 
 static void report_memory_map(const struct bootinfo *bi)
@@ -82,8 +85,14 @@ void kmain(void)
     /* Initialize physical memory manager (M3) */
     pmm_init(bootinfo_get());
 
-    /* Initialize kernel heap allocator (M3) */
+    /* Build master kernel page tables and switch CR3 (M4) */
+    vmm_init(bootinfo_get());
+
+    /* Initialize kernel heap allocator (M3; uses the HHDM kept by vmm_init) */
     heap_init();
+
+    /* M4 address-space lifecycle and in-kernel frame-accounting suite. */
+    aspace_self_test();
 
 #ifdef ATAOS_TEST_PANIC
     /* Deliberate failure used only by the panic-detection test (TEST_PANIC=1). */
@@ -98,8 +107,14 @@ void kmain(void)
     arch_test_fault_gp();
 #elif defined(ATAOS_TEST_FAULT_PF)
     arch_test_fault_pf();
+#elif defined(ATAOS_TEST_FAULT_PFWP)
+    arch_test_fault_pfwp();
+#elif defined(ATAOS_TEST_FAULT_PFNX)
+    arch_test_fault_pfnx();
 #elif defined(ATAOS_TEST_FAULT_DF)
     arch_test_fault_df();
+#elif defined(ATAOS_TEST_FAULT_STACKOVF)
+    arch_test_fault_stackovf();
 #elif defined(ATAOS_TEST_FAULT)
     arch_test_fault_ud();
 #endif

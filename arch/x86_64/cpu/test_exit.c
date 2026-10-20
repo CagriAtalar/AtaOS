@@ -51,15 +51,50 @@ void arch_test_fault_pf(void)
     *ptr = 0x42;
 }
 
+/* Defined by arch/x86_64/linker.ld. */
+extern char __text_start[];
+extern char __data_start[];
+
+void arch_test_fault_pfwp(void)
+{
+    /* Text is mapped RX by vmm_init(); writing it must raise a protection #PF. */
+    volatile uint8_t *ptr = (volatile uint8_t *)__text_start;
+    *ptr = 0x90;
+}
+
+void arch_test_fault_pfnx(void)
+{
+    /* Data is mapped RW+NX by vmm_init(); fetching it must raise an NX #PF. */
+    __asm__ volatile("call *%0" : : "r"((uintptr_t)__data_start) : "memory");
+}
+
 void arch_test_fault_df(void)
 {
     /*
      * Load RSP with 0 (unmapped). When ud2 executes, the CPU attempts to push
      * the exception frame to address 0, causing a page fault. Because the stack
      * cannot be written, this escalates to a Double Fault (#DF). Since vector 8
-     * has IST1 configured in the IDT, the CPU switches to s_df_stack and executes
-     * the #DF handler rather than triple faulting.
+     * has IST1 configured in the IDT, the CPU switches to the IST1 stack and
+     * executes the #DF handler rather than triple faulting.
      */
     __asm__ volatile("movq $0, %%rsp\n\t"
                      "ud2\n\t" : : : "memory");
+}
+
+extern char boot_stack_bottom[];
+
+void arch_test_fault_stackovf(void)
+{
+    /*
+     * Point RSP at the first byte above the boot-stack guard page and push.
+     * The push lands in the guard, whose translation vmm_init() removed. The
+     * #PF frame also cannot be pushed on the guard, so the CPU escalates to
+     * #DF on IST1.
+     */
+    __asm__ volatile("mov %0, %%rsp\n\t"
+                     "pushq $0x42\n\t"
+                     :
+                     : "r"((uintptr_t)boot_stack_bottom)
+                     : "memory");
+    __builtin_unreachable();
 }

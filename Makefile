@@ -26,6 +26,7 @@ OBJS     := $(addprefix $(OBJ_DIR)/,$(KERNEL_C:.c=.o) $(KERNEL_S:.S=.o))
 
 QEMU         ?= qemu-system-x86_64
 QEMU_DISPLAY ?= none
+QEMU_RUN_FLAGS ?=
 QEMU_COMMON  := -machine q35 -m 256M -cpu qemu64 -smp 1 -no-reboot
 OVMF         ?= $(firstword $(wildcard /usr/share/ovmf/OVMF.fd /usr/share/OVMF/OVMF.fd))
 
@@ -101,16 +102,20 @@ run-debug: $(ISO) need-qemu ## BIOS boot paused, GDB stub on tcp::1234 (see docs
 ##@ Tests
 
 HOST_BIN := $(BUILD_ROOT)/host/ataos-host-tests
-HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c kernel/mm/heap.c
+HOST_SRCS := $(wildcard tests/host/*.c) kernel/lib/string.c kernel/lib/fmt.c kernel/mm/bitmap.c \
+             kernel/mm/heap.c kernel/mm/mm_internal.c kernel/mm/vmm_validate.c \
+             kernel/mm/aspace.c \
+             arch/x86_64/mm/paging_encode.c arch/x86_64/interrupt/page_fault.c
 HOST_SAN := $(shell echo 'int main(void){return 0;}' | $(HOST_CC) -x c - -fsanitize=address,undefined -o /dev/null >/dev/null 2>&1 && echo -fsanitize=address,undefined -fno-sanitize-recover=all)
-HOST_HDRS := $(wildcard include/kernel/*.h tests/host/*.h)
+HOST_HDRS := $(wildcard include/kernel/*.h tests/host/*.h kernel/mm/*.h arch/x86_64/include/arch/*.h)
 
 $(HOST_BIN): $(HOST_SRCS) $(HOST_HDRS)
 	@$(ENVCHECK) require hosttest
 	@mkdir -p $(dir $@)
 	$(HOST_CC) -std=gnu11 -O1 -g -fno-omit-frame-pointer -fno-builtin -Wall -Wextra -Werror \
 	    -Wno-format-truncation -Wno-format-overflow \
-	    -DATAOS_HOST_TEST -Iinclude -Itests/host $(HOST_SAN) $(HOST_SRCS) -o $@
+	    -DATAOS_HOST_TEST -Iinclude -Itests/host -Ikernel/mm -Iarch/x86_64/include \
+	    $(HOST_SAN) $(HOST_SRCS) -o $@
 	@[ -n "$(HOST_SAN)" ] || echo "note: sanitizers unavailable, host tests built WITHOUT ASan/UBSan"
 
 .PHONY: test-host
@@ -131,10 +136,13 @@ test-qemu: ## Headless QEMU smoke tests (BIOS, UEFI, Panic, and Exceptions)
 	@$(MAKE) --no-print-directory TEST_FAULT=ud iso
 	@$(MAKE) --no-print-directory TEST_FAULT=gp iso
 	@$(MAKE) --no-print-directory TEST_FAULT=pf iso
+	@$(MAKE) --no-print-directory TEST_FAULT=pfwp iso
+	@$(MAKE) --no-print-directory TEST_FAULT=pfnx iso
 	@$(MAKE) --no-print-directory TEST_FAULT=df iso
+	@$(MAKE) --no-print-directory TEST_FAULT=stackovf iso
 	@$(MAKE) --no-print-directory iso
 	@$(ENVCHECK) require qemu
-	python3 tests/qemu/run.py --root $(CURDIR) --mode $(MODE) --log-dir $(LOG_DIR)
+	python3 tests/qemu/run.py --root $(CURDIR) --mode $(MODE) --log-dir $(LOG_DIR) $(QEMU_RUN_FLAGS)
 
 .PHONY: test
 test: test-host test-scripts test-qemu ## All tests

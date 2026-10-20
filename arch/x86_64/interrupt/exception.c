@@ -6,6 +6,7 @@
  *   - Structured exception reporting (#DE, #UD, #GP, #PF, #DF, etc.)
  *   - Safe halt via arch_halt_forever() (and arch_test_exit in test builds)
  */
+#include "arch/page_fault.h"
 #include "arch/trap_frame.h"
 #include "kernel/arch.h"
 #include "kernel/compiler.h"
@@ -86,6 +87,29 @@ void x86_exception_dispatch(struct trap_frame *frame)
             frame->r8, frame->r9, frame->r10, frame->r11);
     kprintf("R12: 0x%016lx  R13: 0x%016lx  R14: 0x%016lx  R15: 0x%016lx\n",
             frame->r12, frame->r13, frame->r14, frame->r15);
+
+    if (frame->vector == 8)
+        kprintf("DF: delivered on IST1 (stack or guard-page overflow path)\n");
+
+    if (frame->vector == 14) {
+        struct x86_page_fault pf = x86_decode_page_fault(frame->error_code);
+
+        kprintf("PF: CR2=0x%016lx origin=%s access=%s cause=%s fetch=%s\n", cr2,
+                x86_pf_origin(&pf), x86_pf_access(&pf), x86_pf_cause(&pf),
+                x86_pf_fetch_kind(&pf));
+        kprintf("PF: present=%u write=%u user=%u reserved=%u pk=%u sgx=%u class=%s\n",
+                pf.present, pf.write, pf.user, pf.reserved, pf.protection_key,
+                pf.shadow_stack, pf.user ? "user-demand" : "supervisor-fatal");
+        if (pf.present && pf.write && !pf.user)
+            kprintf("PF: hint=kernel write to a read-only/W^X-protected page\n");
+        else if (pf.present && pf.instruction_fetch)
+            kprintf("PF: hint=instruction fetch from an NX page\n");
+        else if (!pf.present)
+            kprintf("PF: hint=translation absent (demand fault; fatal in M4 kernel)\n");
+        else if (pf.reserved)
+            kprintf("PF: hint=reserved bit set in a paging structure\n");
+    }
+
     kprintf("System halted.\n");
 
 #ifdef ATAOS_TEST_BUILD

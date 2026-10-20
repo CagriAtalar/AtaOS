@@ -12,3 +12,7 @@ Thumbs.db
 # Local scratch
 /scratch/
 *.log
+
+# Python bytecode from test tooling
+__pycache__/
+*.pyc

@@ -21,16 +21,22 @@ This document defines the verification strategy for AtaOS across all development
 
 Host tests execute freestanding kernel library code compiled for the host OS (`-DATAOS_HOST_TEST`), linked with AddressSanitizer and UBSan when supported by the host compiler.
 
-### Covered Components in M1:
+### Covered Components in M4:
 - `kernel/lib/string.c`: `memcpy`, `memmove`, `memset`, `memcmp`, `strlen`, `strnlen`, `strncmp`, `strlcpy`.
 - `kernel/lib/fmt.c`: `snprintf`, `vsnprintf` (`%s`, `%c`, `%d`, `%u`, `%x`, `%lx`, `%lu`, `%p`, `%zu`, `%%`, padding, width).
-- `include/kernel/bits.h`: Alignment macros (`ALIGN_UP`, `ALIGN_DOWN`, `IS_ALIGNED`), bit manipulation (`DIV_ROUND_UP`).
+- `include/kernel/bits.h`: alignment macros (`ALIGN_UP`, `ALIGN_DOWN`, `IS_ALIGNED`), bit manipulation (`DIV_ROUND_UP`).
+- `kernel/mm/bitmap.c` and `kernel/mm/heap.c`: frame bitmap, split/coalesce, overflow rejection.
+- `kernel/mm/mm_internal.c`: canonical PML4 bases, 4 KiB/2 MiB/1 GiB exact translation, fallible table allocation and rollback.
+- `arch/x86_64/mm/paging_encode.c`: level-aware PAT/PS decoding, W^X flags, permission-preserving re-protection.
+- `kernel/mm/vmm_validate.c`: range/flag/overflow validation shared with `vmm_map`/`aspace_map`.
+- `kernel/mm/aspace.c`: private user half, shared kernel half, mapping lifecycle and PMM-counter return.
+- `arch/x86_64/interrupt/page_fault.c`: every documented #PF error-code bit and diagnostic summary.
 
 ### Running Host Tests:
 ```bash
 make test-host
 ```
-Host tests exit with status `0` on success and non-zero on failure. Under ASan/UBSan, any memory corruption, buffer overflow, or undefined behavior immediately halts execution with a detailed diagnostic.
+Host tests exit with status `0` on success and non-zero on failure. Under ASan/UBSan, any memory corruption, buffer overflow, or undefined behavior immediately halts execution with a detailed diagnostic. The M4 suite contains 40 tests; the expected summary is `Total: 40, Passed: 40, Failed: 0`.
 
 ---
 
@@ -38,26 +44,29 @@ Host tests exit with status `0` on success and non-zero on failure. Under ASan/U
 
 AtaOS provides a Python-based headless test runner for QEMU.
 
-### Test Matrix for M1:
-1. **BIOS Boot Smoke Test:**
-   - Command: `qemu-system-x86_64 -machine q35 -m 256M -cpu qemu64 -smp 1 -cdrom build/debug_test/ataos.iso -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04`
-   - Expected Output:
-     - `[ataos] === AtaOS Kernel v0.1.0-dev ===`
-     - `[ataos] bootloader: Limine`
-     - `[ataos] HHDM offset: 0xffff800000000000`
-     - `[ataos] boot complete, entering halt loop`
-   - Exit Code: `33` (`0x21` via QEMU debug-exit port `0xf4`, indicating pass).
-2. **UEFI Boot Smoke Test:**
-   - Same as above with `-bios /usr/share/OVMF/OVMF.fd` or `/usr/share/ovmf/OVMF.fd`.
-   - If OVMF firmware is missing, the test reports `NOT RUN (OVMF not found)` and exits non-fatally with notification.
-3. **Panic Diagnostic Smoke Test:**
-   - Built with `TEST_PANIC=1`.
-   - Asserts that the kernel prints `KERNEL PANIC:`, file, line number, disables interrupts, and exits via port `0xf4` with code `35` (`0x23`).
+### Test Matrix for M4 (11 tests):
+1. **BIOS Boot Smoke Test:** asserts the AtaOS/Limine/HHDM/boot-complete banners and exit code `33`.
+2. **UEFI Boot Smoke Test:** same markers with OVMF; reports `NOT RUN` if firmware is absent unless `--require-all` is set.
+3. **Panic Diagnostic Smoke Test:** `TEST_PANIC=1`; asserts a structured panic and exit code `35`.
+4. **#DE, #UD, #GP:** deliberate fault injection; asserts the vector dump, halt, and exit code `35`.
+5. **#PF (unmapped):** asserts `CR2=0x100`, `origin=kernel access=write cause=not-present`, halt, exit `35`.
+6. **#PF write-protect:** writes RX kernel text; asserts `access=write cause=protection` and the W^X hint.
+7. **#PF NX:** fetches from NX data; asserts `access=fetch cause=protection` and the NX hint.
+8. **#DF via IST1:** zero-RSP fault path; asserts the #DF vector and `DF: delivered on IST1`.
+9. **Kernel stack guard:** `stackovf` pushes into the unmapped boot-stack guard; the failed #PF frame push escalates to #DF on IST1. Asserts `CR2` in the guard page, the IST1 line, and a clean halt.
+
+All exception tests assert `*** CPU EXCEPTION ***` and `System halted.` in addition to the vector-specific markers.
 
 ### Running QEMU Tests:
 ```bash
 make test-qemu
+# CI mode: fail instead of skipping missing images/firmware
+make test-qemu QEMU_RUN_FLAGS=--require-all
+# Diagnostic mode: re-run a timed-out test with -d int,cpu_reset -no-shutdown
+make test-qemu QEMU_RUN_FLAGS=--trace-on-timeout
 ```
+
+The runner isolates QEMU in its own process group, kills the group on timeout, prints the final serial lines, and keeps the `-D` trace file separate from serial output. See [DEBUGGING.md](DEBUGGING.md) §3.
 
 ---
 
@@ -125,6 +134,12 @@ VirtualBox testing verifies hardware compatibility on a secondary hypervisor (pe
 |---|---|---|
 | `make test-host` | Pure unit tests with ASan/UBSan | QR-002, QR-003 |
 | `make test-scripts` | Script & commit validator tests | QR-001, ADR-0015 |
-| `make test-qemu` | Headless QEMU BIOS/UEFI smoke tests | FR-001, QR-003 |
+| `make test-qemu` | Headless QEMU BIOS/UEFI, panic and 8 exception tests | FR-001, QR-003 |
 | `make repro-check` | Bit-for-bit ELF reproducibility check | QR-001 |
-| `make test` | Runs host, script, and QEMU tests | Complete M1 suite |
+| `make test` | Runs host, script, and QEMU tests | Complete M4 suite |
+
+GitHub Actions (`.github/workflows/ci.yml`) runs the same host, script, lint,
+reproducibility and QEMU layers on Ubuntu, with `QEMU_RUN_FLAGS=--require-all` so
+a missing UEFI image is a failure rather than a silent skip. CI was not executed
+locally in this session; the workflow file is `NOT RUN` evidence until a push or
+manual workflow dispatch runs it.

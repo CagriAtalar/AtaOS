@@ -7,8 +7,11 @@
  * to our own stack.
  *
  * Registers: all caller state is discarded; RSP/RBP are set here.
- * Stack: 16 KiB boot stack in .bss, no guard page (known limitation, see
- * docs/MEMORY_LAYOUT.md). Replaced by per-thread kernel stacks in M6.
+ * Stack: 16 KiB boot stack in .bss with a dedicated 4 KiB guard page below
+ * it. vmm_init() removes the guard translation from the master tables after
+ * copying the bootloader mappings, so a kernel-stack overflow faults instead
+ * of silently corrupting adjacent .bss. Replaced by per-thread kernel stacks
+ * in M6 (docs/MEMORY_LAYOUT.md §7).
  */
     .section .text.boot, "ax", @progbits
     .global _start
@@ -26,6 +29,10 @@ _start:
     .size _start, . - _start
 
     .section .bss.boot_stack, "aw", @nobits
+    .balign 4096
+    .global boot_stack_guard
+boot_stack_guard:
+    .skip   4096
     .balign 16
     .global boot_stack_bottom
 boot_stack_bottom:

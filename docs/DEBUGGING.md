@@ -71,9 +71,46 @@ When a kernel invariant fails or an explicit `panic()` is triggered:
 - In test builds (`TEST=1`), signals QEMU `isa-debug-exit` port `0xf4` with code `35`.
 - In normal builds, enters a permanent halt loop (`for (;;) { hlt(); }`).
 
+### 3. QEMU Runner Timeouts and `-no-shutdown` Traces
+
+The headless runner (`tests/qemu/run.py`) isolates each QEMU process in its own
+process group, kills the whole group on timeout, prints the last serial lines,
+and reports `FAILED (Timeout)` instead of hanging. To capture a trace for a
+timeout, run:
+
+```bash
+make test-qemu QEMU_RUN_FLAGS=--trace-on-timeout
+```
+
+The runner re-runs only the timed-out test with `-d int,cpu_reset -D
+build/logs/<test>-trace.log` and adds `-no-shutdown`, so QEMU remains alive
+after a triple fault and the complete interrupt/reset history reaches the trace
+file. Serial output and the `-D` trace use separate sinks; do not point both at
+the same file. `-no-shutdown` is diagnostic only: without it, QEMU exits on a
+triple fault and the trace can end at the reset.
+
+Pre-flight failures before the CR3 load are reported as `vmm: pre-flight ...`
+panics with the failing spec name; a guard page that the bootloader mapped with
+a large leaf is rejected rather than silently split.
+
+### 4. Decoding Page Faults
+
+Every #PF report includes the raw error code and:
+
+```text
+PF: CR2=0x... origin=kernel|user access=read|write|fetch cause=protection|not-present fetch=data|instruction
+PF: present=0|1 write=0|1 user=0|1 reserved=... pk=... sgx=... class=supervisor-fatal|user-demand
+PF: hint=...
+```
+
+`origin=kernel` is fatal in M4. `cause=not-present` on a kernel address is a
+missing translation (not demand paging, which does not exist yet).
+`cause=protection` with `access=write` is a W^X/read-only violation and with
+`access=fetch` is an NX violation.
+
 ---
 
-## 4. Framebuffer and Screen Diagnostics
+## 5. Framebuffer and Screen Diagnostics
 
 If the kernel hangs before serial is initialized:
 - Limine provides a linear framebuffer when requested (`limine_framebuffer_request`).

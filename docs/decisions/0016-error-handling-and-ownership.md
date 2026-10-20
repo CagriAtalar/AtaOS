@@ -46,3 +46,20 @@ exists.
 ## Conditions that could justify revisiting
 
 Introducing richer error context; adopting `cleanup` attribute helpers.
+
+## Amendment (M4, 2026-10-20): errno values and leaf ownership
+
+* **G1:** `include/kernel/errno.h` is the kernel-internal errno header for M4.
+  It uses Linux-compatible numeric values only for the errors currently used
+  (`EINVAL`, `ENOENT`, `ENOMEM`, `EEXIST`); functions return `0` or a negative
+  value. The public user ABI header remains `include/abi/errno.h` and must be
+  kept numerically compatible when M5 fixes it.
+* **G4:** page-table frames are owned by the address space and freed by
+  `aspace_destroy()`. Leaf data frames mapped through `aspace_map()` remain
+  caller-owned in M4; the M5 process teardown takes ownership of releasing them
+  before destroying the space. `aspace_destroy()` is never called while its
+  PML4 is the active `CR3`.
+* Fallible table allocation in the VMM unwinds the tables it installed; a failed
+  large-range map also removes all translations it added. Full rollback of
+  table frames allocated by an *earlier* failed attempt is not claimed and is
+  tracked as an M5 hardening item.

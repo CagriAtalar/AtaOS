@@ -1,6 +1,10 @@
 # Process and Thread Model
 
-Status: **`PLANNED`** (M5–M7). No code exists. Interfaces are indicative;
+Status: **`PLANNED` (M5–M7)** for processes, threads and scheduling. The
+address-space object used by processes is **`IMPLEMENTED, TESTED`** (M4):
+`struct aspace` in `include/kernel/aspace.h` has create/destroy/map/unmap/resolve
+and is covered by host tests plus an in-kernel PMM-counter suite. No process
+owns one yet, and no Ring 3 context exists. Interfaces below are indicative;
 exact signatures are fixed when each milestone starts.
 
 ## 1. Objects
@@ -67,6 +71,11 @@ closes fds and drops cwd; the address space is destroyed after no thread of it
 is running (never while it is the active `CR3`: switch to the kernel space
 first); status stored; parent notified; zombie reaped by `wait` (or immediately
 for orphan/init-adopted).
+
+M4 boundary: `aspace_destroy()` frees only private page-table frames and the
+PML4. The process teardown added in M5/M7 must first release every leaf data
+frame it mapped (including user stacks and ELF segments); this ownership
+follow-up is tracked in `ROADMAP.md`.
 
 A thread cannot free its own kernel stack while running on it; a DEAD thread is
 freed by the next thread run or by a reaper (design chosen at M6 and recorded in

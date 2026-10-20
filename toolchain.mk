@@ -62,10 +62,16 @@ ifneq ($(TEST_FAULT),0)
     FLAVOR_DEFS += -DATAOS_TEST_FAULT_GP
   else ifeq ($(TEST_FAULT),pf)
     FLAVOR_DEFS += -DATAOS_TEST_FAULT_PF
+  else ifeq ($(TEST_FAULT),pfwp)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_PFWP
+  else ifeq ($(TEST_FAULT),pfnx)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_PFNX
   else ifeq ($(TEST_FAULT),df)
     FLAVOR_DEFS += -DATAOS_TEST_FAULT_DF
+  else ifeq ($(TEST_FAULT),stackovf)
+    FLAVOR_DEFS += -DATAOS_TEST_FAULT_STACKOVF
   else
-    $(error Unknown TEST_FAULT='$(TEST_FAULT)'; supported: de, ud, gp, pf, df)
+    $(error Unknown TEST_FAULT='$(TEST_FAULT)'; supported: de, ud, gp, pf, pfwp, pfnx, df, stackovf)
   endif
 endif
 
@@ -80,7 +86,7 @@ WARN_FLAGS := -Wall -Wextra -Wshadow -Wvla -Wstrict-prototypes -Wmissing-prototy
 # -mno-red-zone             interrupts would clobber the red zone below RSP
 # -mgeneral-regs-only etc.  no x87/MMX/SSE in the kernel (no FPU state saving yet)
 # -fno-pic -fno-pie         fixed-address image, no relocations at load
-# -fno-stack-protector      no guard-variable runtime yet (revisit at M4)
+# -fno-stack-protector      no guard-variable runtime/TLS yet (later milestone)
 # -fno-stack-check          no probes (no libc support)
 # -fno-omit-frame-pointer   stack walking / GDB
 # -fno-lto                  simple, debuggable output

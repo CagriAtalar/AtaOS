@@ -1,10 +1,10 @@
 /*
  * log.h - kernel logging to the early console.
  *
- * Output goes to the serial console only (M1). Format specifiers are those
+ * Output goes to the serial console only (M4). Format specifiers are those
  * documented in kernel/fmt.h. Messages are line-oriented: klog() appends the
- * newline. Not yet interrupt-safe (no interrupts are enabled in M1); a lock
- * will be added together with the first interrupt-enabling milestone.
+ * newline. Not yet interrupt-safe; interrupts are still disabled during boot,
+ * and a lock will be added with the first interrupt-enabling milestone.
  */
 #ifndef ATAOS_KERNEL_LOG_H
 #define ATAOS_KERNEL_LOG_H

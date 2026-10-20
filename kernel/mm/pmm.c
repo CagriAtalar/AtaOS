@@ -16,6 +16,7 @@ static struct bitmap s_bitmap;
 static struct pmm_stats s_stats;
 static size_t s_next_fit_hint = 0;
 static uint64_t s_hhdm_offset = 0;
+static uintptr_t s_bitmap_paddr = 0;
 static bool s_pmm_initialised = false;
 
 static void pmm_self_test(void)
@@ -191,6 +192,7 @@ void pmm_init(const struct bootinfo *bi)
     s_stats.used_frames = 0;
     s_next_fit_hint = 0;
     s_hhdm_offset = bi->hhdm_offset;
+    s_bitmap_paddr = (uintptr_t)bitmap_paddr;
     s_pmm_initialised = true;
 
     log_info("pmm: %lu MiB managed (%lu frames), %lu KiB free (%lu frames), %lu KiB reserved (%lu "
@@ -278,4 +280,9 @@ void pmm_get_stats(struct pmm_stats *out)
 {
     if (out)
         *out = s_stats;
+}
+
+uintptr_t pmm_bitmap_phys(void)
+{
+    return s_bitmap_paddr;
 }
